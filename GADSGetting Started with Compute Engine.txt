@@ -1,0 +1,286 @@
+#LAB:Getting Started with Compute Engine
+##Objectives
+In this lab, you will learn how to perform the following tasks:
+
+-Create a Compute Engine virtual machine using the Google Cloud Platform (GCP) Console.
+
+-Create a Compute Engine virtual machine using the gcloud command-line interface.
+
+-Connect between the two instances.
+
+
+#Task 1: Create a virtual machine using the GCP Console
+##Steps:
+-In the Navigation menu (Navigation menu), click Compute Engine > VM instances.
+Click Create.
+-On the Create an Instance page, for Name, type my-vm-1
+-For Region and Zone, select the region and zone assigned by Qwiklabs.
+-For Machine type, accept the default.
+-For Boot disk, if the Image shown is not Debian GNU/Linux 9 (stretch), click Change and select Debian GNU/Linux 9 (stretch).
+Leave the defaults for Identity and API access unmodified.
+-For Firewall, click Allow HTTP traffic.
+Leave all other defaults unmodified.
+-To create and launch the VM, click Create.
+Note: The VM can take about two minutes to launch and be fully available for use.
+
+-gcloud beta compute --project=qwiklabs-gcp-02-c8d435db641d instances create my-vm-1
+ --zone=us-central1-a
+ --machine-type=e2-medium
+ --subnet=default
+ --network-tier=PREMIUM
+ --maintenance-policy=MIGRATE
+ --service-account=862691884851-compute@developer.gserviceaccount.com
+ --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol
+ ,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append 
+ --tags=http-server,https-server --image=debian-10-buster-v20200910
+ --image-project=debian-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard
+ --boot-disk-device-name=my-vm-1 --no-shielded-secure-boot --no-shielded-vtpm
+ --no-shielded-integrity-monitoring --reservation-affinity=any
+
+gcloud compute --project=qwiklabs-gcp-02-c8d435db641d firewall-rules create default-allow-http
+ --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:80
+ --source-ranges=0.0.0.0/0 --target-tags=http-server
+
+gcloud compute --project=qwiklabs-gcp-02-c8d435db641d firewall-rules create default-allow-https
+ --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:443 --source-ranges=0.0.0.0/0
+ --target-tags=https-server
+
+
+
+#Task 2: Create a virtual machine using the gcloud command line
+##Steps:
+-In GCP console, on the top right toolbar, click the Open Cloud Shell button.
+
+-Cloud Shell icon
+
+Click Continue. cloudshell
+
+-To display a list of all the zones in the region to which Qwiklabs assigned you, enter this partial command gcloud compute zones list | grep followed by the region that Qwiklabs or your instructor assigned you to.
+
+Your completed command will look like this:
+
+-gcloud compute zones list | grep us-central1
+
+
+-It will display the following result:
+    us-central1-c              us-central1              UP
+    us-central1-a              us-central1              UP
+    us-central1-f              us-central1              UP
+    us-central1-b              us-central1              UP
+
+-Choose a zone from that list other than the zone to which Qwiklabs assigned you. For example, if Qwiklabs assigned you to region us-central1 and zone us-central1-a you might choose zone us-central1-b.
+
+-To set your default zone to the one you just chose, enter this partial command gcloud config set compute/zone followed by the zone you chose.
+
+-Your completed command will look like this:
+
+-gcloud config set compute/zone us-central1-b
+
+    Updated property [compute/zone].
+
+-To create a VM instance called my-vm-2 in that zone, execute this command:
+
+-gcloud compute instances create "my-vm-2" \
+--machine-type "n1-standard-1" \
+--image-project "debian-cloud" \
+--image "debian-9-stretch-v20190213" \
+--subnet "default"
+
+- the command will create a vm instance with the result below showing the details of the vm:
+    Created [https://www.googleapis.com/compute/v1/projects/qwiklabs-gcp-02-c8d435db641d/zones/us-central1-a/instances/my-vm-2].
+    WARNING: Some requests generated warnings:
+    - The resource 'projects/debian-cloud/global/images/debian-9-stretch-v20190213' is deprecated. A suggested replacement is 'projects/debian-cloud/global/images/debian-9-stre
+    tch-v20190312'.
+    NAME     ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP   STATUS
+    my-vm-2  us-central1-a  n1-standard-1               10.128.0.3   34.67.69.184  RUNNING
+
+-Note: The VM can take about two minutes to launch and be fully available for use.
+
+-To close the Cloud Shell, execute the following command:
+
+exit
+
+
+#Task 3: Connect between VM instances
+##Steps:
+-In the Navigation menu (Navigation menu), click Compute Engine > VM instances.
+
+You will see the two VM instances you created, each in a different zone.
+
+Notice that the Internal IP addresses of these two instances share the first three bytes in common. They reside on the same subnet in their Google Cloud VPC even though they are in different zones.
+
+-To open a command prompt on the my-vm-2 instance, click SSH in its row in the VM instances list.
+
+-Use the ping command to confirm that my-vm-2 can reach my-vm-1 over the network:
+
+    ping my-vm-1
+-will give the below out put on the shell commandline	
+	
+    my-vm-1.c.qwiklabs-gcp-02-c8d435db641d.internal ping statistics ---
+    117 packets transmitted, 117 received, 0% packet loss, time 118722ms
+
+
+Notice that the output of the ping command reveals that the complete hostname of my-vm-1 is my-vm-1.c.PROJECT_ID.internal, where PROJECT_ID is the name of your Google Cloud Platform project. GCP automatically supplies Domain Name Service (DNS) resolution for the internal IP addresses of VM instances.
+
+-Press Ctrl+C to abort the ping command.
+
+-Use the ssh command to open a command prompt on my-vm-1:
+
+    ssh my-vm-1
+
+
+
+If you are prompted about whether you want to continue connecting to a host with unknown authenticity, enter yes to confirm that you do.
+
+-At the command prompt on my-vm-1, install the Nginx web server:
+
+    sudo apt-get install nginx-light -y
+-The command will give the following out:
+
+
+    Reading package lists... Done
+    Building dependency tree       
+    Reading state information... Done
+    The following additional packages will be installed:
+    libnginx-mod-http-echo nginx-common
+    Suggested packages:
+    fcgiwrap nginx-doc ssl-cert
+    The following NEW packages will be installed:
+    libnginx-mod-http-echo nginx-common nginx-light
+    0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 703 kB of archives.
+    After this operation, 1692 kB of additional disk space will be used.
+    Get:1 http://security.debian.org/debian-security buster/updates/main amd64 nginx-common all 1.14.2-2+deb10u3 [121 k
+    B]
+    Get:2 http://security.debian.org/debian-security buster/updates/main amd64 libnginx-mod-http-echo amd64 1.14.2-2+de
+    b10u3 [104 kB]
+    Get:3 http://security.debian.org/debian-security buster/updates/main amd64 nginx-light amd64 1.14.2-2+deb10u3 [478 
+    kB]
+    Fetched 703 kB in 0s (4757 kB/s)    
+    Preconfiguring packages ...
+    Selecting previously unselected package nginx-common.
+    (Reading database ... 37801 files and directories currently installed.)
+    Preparing to unpack .../nginx-common_1.14.2-2+deb10u3_all.deb ...
+    Unpacking nginx-common (1.14.2-2+deb10u3) ...
+    Selecting previously unselected package libnginx-mod-http-echo.
+    Preparing to unpack .../libnginx-mod-http-echo_1.14.2-2+deb10u3_amd64.deb ...
+    Unpacking libnginx-mod-http-echo (1.14.2-2+deb10u3) ...
+    Selecting previously unselected package nginx-light.
+    Preparing to unpack .../nginx-light_1.14.2-2+deb10u3_amd64.deb ...
+    Unpacking nginx-light (1.14.2-2+deb10u3) ...
+    Setting up nginx-common (1.14.2-2+deb10u3) ...
+    Created symlink /etc/systemd/system/multi-user.target.wants/nginx.service → /lib/systemd/system/nginx.service.
+    Setting up libnginx-mod-http-echo (1.14.2-2+deb10u3) ...
+    Setting up nginx-light (1.14.2-2+deb10u3) ...
+    Processing triggers for man-db (2.8.5-2) ...
+    Processing triggers for systemd (241-7~deb10u4) ...
+    rtt min/avg/max/mdev = 0.265/0.443/11.229/1.007 ms
+
+
+
+-Use the nano text editor to add a custom message to the home page of the web server:
+
+    sudo nano /var/www/html/index.nginx-debian.html
+-We get the following out put from the nano editor
+
+    <html>
+    <head>
+    Hi from GERALD
+    <title>Welcome to nginx!</title>
+    <style>
+    body {
+    width: 35em;
+    margin: 0 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+    </style>
+    </head>
+    <body>
+    <h1>Welcome to nginx!</h1>
+    <p>If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.</p>
+    <p>For online documentation and support please refer to
+    <a href="http://nginx.org/">nginx.org</a>.<br/>
+    Commercial support is available at
+    <a href="http://nginx.com/">nginx.com</a>.</p>
+    <p><em>Thank you for using nginx.</em></p>
+    </body>
+
+-Use the arrow keys to move the cursor to the line just below the h1 header. Add text like this, and replace YOUR_NAME with your name:
+
+    Hi from YOUR_NAME
+
+-Press Ctrl+O and then press Enter to save your edited file, and then press Ctrl+X to exit the nano text editor.
+
+-Confirm that the web server is serving your new page. At the command prompt on my-vm-1, execute this command:
+
+    curl http://localhost/
+-We get the following out from the command-line
+    <!DOCTYPE html>
+    <html>
+    <head>
+    Hi from GERALD
+    <title>Welcome to nginx!</title>
+    <style>
+    body {
+    width: 35em;
+    margin: 0 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+    </style>
+    </head>
+    <body>
+    <h1>Welcome to nginx!</h1>
+    <p>If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.</p>
+    <p>For online documentation and support please refer to
+    <a href="http://nginx.org/">nginx.org</a>.<br/>
+    Commercial support is available at
+    <a href="http://nginx.com/">nginx.com</a>.</p>
+    <p><em>Thank you for using nginx.</em></p>
+    </body>
+    </html>
+
+-The response will be the HTML source of the web server's home page, including your line of custom text.
+
+-To exit the command prompt on my-vm-1, execute this command:
+
+    exit
+
+-You will return to the command prompt on my-vm-2
+
+-To confirm that my-vm-2 can reach the web server on my-vm-1, at the command prompt on my-vm-2, execute this command:
+
+    curl http://my-vm-1/
+
+    !DOCTYPE html>
+    <html>
+    <head>
+    Hi from GERALD
+    <title>Welcome to nginx!</title>
+    <style>
+    body {
+    width: 35em;
+    margin: 0 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+    </style>
+    </head>
+    <body>
+    <h1>Welcome to nginx!</h1>
+    <p>If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.</p>
+    <p>For online documentation and support please refer to
+    <a href="http://nginx.org/">nginx.org</a>.<br/>
+    Commercial support is available at
+    <a href="http://nginx.com/">nginx.com</a>.</p>
+    <p><em>Thank you for using nginx.</em></p>
+    v</body>
+    </html>
+
+-The response will again be the HTML source of the web server's home page, including your line of custom text.
+
+-In the Navigation menu (Navigation menu), click Compute Engine > VM instances.
+
+-Copy the External IP address for my-vm-1 and paste it into the address bar of a new browser tab. You will see your web server's home page, including your custom text.
+
